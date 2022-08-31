@@ -51,7 +51,7 @@ from nuscenes.nuscenes import NuScenes
 from nuscenes.utils.data_classes import LidarPointCloud, Box
 from nuscenes.utils.geometry_utils import BoxVisibility, transform_matrix
 from nuscenes.utils.kitti import KittiDB
-from nuscenes.utils.splits import create_splits_logs
+from nuscenes.utils.splits import create_splits_logs, create_splits_scenes
 
 
 class KittiConverter:
@@ -76,7 +76,7 @@ class KittiConverter:
         self.lidar_name = lidar_name
         self.image_count = image_count
         self.nusc_version = nusc_version
-        self.split = split
+        self.split = split      # train; val; test; mini_train; mini_val; train_detect; train_track
         self.camera_only = camera_only
         self.ID = 0
 
@@ -260,7 +260,7 @@ class KittiConverter:
         # token_idx = 0  # Start tokens from 0.
 
         # Get assignment of scenes to splits.
-        split_logs = create_splits_logs(self.split, self.nusc)
+        scene_splits = create_splits_scenes(verbose=False)
 
         # Create output folders.
         label_folder = os.path.join(self.nusc_kitti_dir, self.split, 'label_02')
@@ -272,14 +272,13 @@ class KittiConverter:
                 os.makedirs(folder)
 
         Instance_to_ID = {}
-
-        sample_scenes = self.nusc.scene
+        sample_scenes = []
+        all_scenes = self.nusc.scene
+        for scene in all_scenes:
+            if scene['name'] in scene_splits[self.split]:
+                sample_scenes.append(scene)
         for sample_scene in sample_scenes:
             frame_tokens = self._parse_frame_tokens(sample_scene)
-
-            # Use only the samples from the current split.
-            # sample_tokens = self._split_to_samples(split_logs)
-            # sample_tokens = sample_tokens[:self.image_count]
 
             # tokens = []
             labels = ''
